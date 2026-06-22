@@ -1,114 +1,50 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // Bắt buộc để dùng ProviderScope
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'views/pages/onboarding_screen.dart';
+import 'res/app.context.extension.dart';
 
-part 'main.g.dart';
-
-// Khởi tạo một Logger chung cho tầng ứng dụng (App level)
 final Logger _appLogger = Logger('WordWiseApp');
-
-@riverpod
-String helloWorld(Ref ref) {
-  return 'Hello world';
-}
 
 void main() {
   // 1. Cấu hình hệ thống logging
-  Logger.root.level = Level.ALL; // Ghi nhận tất cả các cấp độ log
+  Logger.root.level = Level.ALL;
   Logger.root.onRecord.listen((LogRecord record) {
-    // Định dạng nội dung hiển thị của log ra console
     debugPrint(
       '${record.level.name}: [${record.time}] (${record.loggerName}): ${record.message}',
     );
   });
 
-  _appLogger.info('Ứng dụng đang khởi chạy...');
+  _appLogger.info('Ứng dụng WordWise đang khởi chạy...');
 
-  // 2. Sử dụng ProviderContainer để đọc thử giá trị ở tầng thuần Dart (Giữ nguyên logic cũ của bạn)
-  final container = ProviderContainer();
-  final value = container.read(helloWorldProvider);
-  _appLogger.info('Giá trị đọc từ Riverpod Provider: $value');
-
-  runApp(
-    // 3. Bắt buộc bọc MyApp trong ProviderScope để Flutter chạy được Riverpod
-    const ProviderScope(child: MyApp()),
-  );
+  runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends StatelessWidget {
+// Chuyển MyApp thành ConsumerWidget để lắng nghe hệ thống màu sắc từ Riverpod ngay từ root
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Lấy bảng màu hiện tại (Light/Dark Mode) từ Provider thông qua extension của bạn
+    final colors = ref.colors;
+
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'WordWise',
+      debugShowCheckedModeBanner:
+          false, // Tắt banner DEBUG cho giao diện sạch đẹp
+      // Khởi tạo ThemeData đồng bộ với Palette màu của app
       theme: ThemeData(
-        // Sửa lỗi cú pháp: Thêm ColorScheme vào trước .fromSeed
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  // 4. Tạo một Logger riêng cho màn hình Home Page để dễ quản lý dữ liệu log
-  final Logger _logger = Logger('MyHomePage');
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-
-    // 5. Ghi log mỗi khi người dùng bấm nút tăng biến đếm
-    _logger.info(
-      'Người dùng đã bấm nút tăng số. Giá trị hiện tại của _counter: $_counter',
-    );
-
-    // Ví dụ về việc bắt log cảnh báo nếu số lượt bấm quá lớn
-    if (_counter >= 10) {
-      _logger.warning(
-        'Cảnh báo: Người dùng đang bấm nút quá nhiều lần (_counter = $_counter)!',
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+        useMaterial3: true,
+        scaffoldBackgroundColor: colors.background,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: colors.primary,
+          brightness: Brightness
+              .dark, // Ép cấu hình sang Dark để đồng bộ với màn onboarding tối
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
+
+      home: const OnboardingScreen(),
     );
   }
 }
